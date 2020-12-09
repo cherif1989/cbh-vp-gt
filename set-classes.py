@@ -72,19 +72,26 @@ class File:
     def decrement_file(self):
         self.occupied = self.occupied + 1
 
+    def increment_file(self):
+        self.occupied = self.occupied - 1
+
 ######################################################################################################################
+
+
+def initialize_files(vp):
+    x = dict()
+    for elem in vp:
+        x[elem] = File()
+        x[elem].file_name = elem
+    return x
 
 
 def list_to_car(liste):
     return Car(liste[0], liste[1], liste[2], liste[3], liste[4], liste[5])
 
-table_cars_expected_0 = {'X4': ['X4', 'V4', 'L4'],
-                         'X1': ['X1', 'V1', 'L1']}
 
-# the log team sends a scv with expected cars we need to import
-# headers are : stock_number, vin, licence_plate
-# UI : we need to create a button : upload csv expected cars EC
-EC = [['X1', 'V1', 'L1'], ['X2', 'V2', 'L2'], ['X3', 'V3', 'L3']]
+def car_to_list(ca: Car):
+    return [ca.stock_number, ca.vin, ca.license_plate, ca.file, ca.status, ca.changelog]
 
 
 def import_expected_cars_today(t, d0):
@@ -96,111 +103,81 @@ def import_expected_cars_today(t, d0):
     return d0
 
 
-table_cars_expected_0 = import_expected_cars_today(EC, table_cars_expected_0)
-print('##############################################')
-print(EC)
-print(table_cars_expected_0)
-print('##############################################')
-
-
-######################################################################################################################
-
-
 def check_car(sn, dic):
     # a function to check whether the car is expected to enter in LC
     # dic is the list of cars located in LC
-    # the so-called list is stored in the table table_cars_at_lc_0
+    # the so-called list is stored in the table table_cars_at_lc
     if sn in dic:
         return "car accepted because it belongs to expected cars"
     else:
         return "car not expected"
 
-car_test_entrance = ['X5', 'V1', 'L1']
-print(check_car(car_test_entrance[0], table_cars_expected_0))
-print('test check car #######################""')
 
-
-valid_placements_0 = ['F50', 'F49', 'F48', 'F47', 'F46', 'F45', 'F44', 'F43', 'F42', 'F41', 'F40', 'F39', 'F38', 'F37', 'F36', 'F35','F34','F33','F32','F31','F30','F29','F28','F27','F26','F25','F24','F23','F22','F21','F20','F19','F18','F17','F16','F15','F14','F13','F12','F11','F10','F9','F8','F7','F6','F5','F4','F3','F2','F1']
-table_files_0 = {}
+valid_placements = ['F50', 'F49', 'F48', 'F47', 'F46', 'F45', 'F44', 'F43', 'F42', 'F41', 'F40', 'F39', 'F38', 'F37', 'F36', 'F35','F34','F33','F32','F31','F30','F29','F28','F27','F26','F25','F24','F23','F22','F21','F20','F19','F18','F17','F16','F15','F14','F13','F12','F11','F10','F9','F8','F7','F6','F5','F4','F3','F2','F1']
 table_files = {}
+table_files = initialize_files(valid_placements)
 
-table_cars_at_lc_0 = {}
-table_cars_expected_0 = {}
-table_cars_left_lc_0 = {}
-
-
-def initialize_files(vp):
-    x = dict()
-    for elem in vp:
-        x[elem] = File()
-        x[elem].file_name = elem
-    return x
+table_cars_at_lc = {}
+table_cars_expected = {'X4': ['X4', 'V4', 'L4'], 'X1': ['X1', 'V1', 'L1']}
+table_cars_left_lc = {}
 
 
-table_files_0 = initialize_files(valid_placements_0)
-table_files = table_files_0
-
-
-def add_car_to_lc(ca: Car, table_cars_at_lc):
+def add_car_to_lc(ca: Car):
     # the test check car in LC is supposed to be negative at this point
-    if ca.stock_number in table_cars_at_lc_0:
+    if ca.stock_number in table_cars_at_lc:
         pass
     else:
         ca.changelog.append("car was admitted to LC")
-        my_list = (ca.stock_number, ca.vin, ca.license_plate, "", 0, ["car was admitted to LC"])
-        table_cars_at_lc[ca.stock_number] = my_list
-
-car = Car()
-car.set_car_properties('X1', 'V1', 'L1', "", 0, [])
-add_car_to_lc(car, table_cars_at_lc_0)
-
-car2 = Car()
-car2.set_car_properties('X2', 'V2', 'L2', "", 0, [])
-add_car_to_lc(car2, table_cars_at_lc_0)
-
-
-print(table_cars_at_lc_0)
-print("???????????????????????????????adding a car to lc")
-print(car.get_car_properties())
+        ca.status = 1
+        table_cars_at_lc[ca.stock_number] = car_to_list(ca)
 
 
 def assign_car_placement(c: Car, placement):
-    if placement in valid_placements_0:
+    if placement in valid_placements:
         if table_files[placement].occupied < 5:
             c.file = placement
             c.status = 2
             c.changelog.append("car " + c.stock_number + " was moved to file " + placement + " at time " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-            table_files_0[placement].decrement_file()
+            table_files[placement].decrement_file()
+            table_files[placement].list_cars.append(car_to_list(c))
         else:
             return "not possible to add the car in file"
     else:
         return "not possible"
 
 
-print(table_files["F10"])
-print(table_files)
+def car_ready_to_leave_lc(c: Car):
+    my_file = c.file
+    table_files[my_file].increment_file()
+    table_files[my_file].list_cars.remove(car_to_list(c))
+    c.status = 3
+    c.file = "leaving zone"
+    c.changelog.append("car " + c.stock_number + " ready to leave the LC at time ")
+    table_cars_at_lc.pop(c.stock_number)
 
-print(car.__dict__)
-print(table_files_0['F10'].__dict__)
-print(table_files_0['F11'].__dict__)
-print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-print("===============================================")
 
 car1 = Car()
-car1.set_car_properties("xxxx", "vvvv", "llll", "", 0, [])
 print(car1.__dict__)
-
-print(table_cars_expected_0)
-table_cars_expected_0["xxxx"] = ["xxxx", "vvvv", "cccc"]
-print(check_car(car1.stock_number, table_cars_expected_0))
-
-add_car_to_lc(car1, table_cars_at_lc_0)
+car1.set_car_properties("X1", "v", "l", "", 0, [])
 print(car1.__dict__)
-
-assign_car_placement(car1, "F11")
+print(table_cars_expected)
+print(check_car(car1.stock_number, table_cars_expected))
+add_car_to_lc(car1)
 print(car1.__dict__)
+print(table_cars_at_lc)
+print(table_files)
+assign_car_placement(car1, "F2")
+print(car1.__dict__)
+print(table_cars_at_lc)
+print(table_files['F2'].__dict__)
+# car_ready_to_leave_lc(car1)
+print(car1.__dict__)
+print(table_cars_at_lc)
+print(table_files['F2'].__dict__)
 
-def car_ready_to_leave_lc(c: Car, table_cars_at_lc):
-    c.status = 3
-    x = car.file
-    c.file = "exit zone"
+
+def display_table_cars_at_lc():
+    for elem in table_files:
+        print(table_files[elem].__dict__)
+
+display_table_cars_at_lc()
