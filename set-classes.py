@@ -120,6 +120,7 @@ table_files = initialize_files(valid_placements)
 table_cars_at_lc = {}
 table_cars_expected = {'X4': ['X4', 'V4', 'L4'], 'X1': ['X1', 'V1', 'L1']}
 table_cars_left_lc = {}
+table_cars_all_time = {}
 
 
 def add_car_to_lc(ca: Car):
@@ -130,6 +131,7 @@ def add_car_to_lc(ca: Car):
         ca.changelog.append("car was admitted to LC")
         ca.status = 1
         table_cars_at_lc[ca.stock_number] = car_to_list(ca)
+        table_cars_all_time[ca.stock_number] = ca.__dict__
 
 
 def assign_car_placement(c: Car, placement):
@@ -147,26 +149,35 @@ def assign_car_placement(c: Car, placement):
 
 
 def car_ready_to_leave_lc(c: Car):
-    my_file = c.file
-    table_files[my_file].increment_file()
-    table_files[my_file].list_cars.remove(car_to_list(c))
+    table_files[c.file].increment_file()
+    table_files[c.file].list_cars.remove(car_to_list(c))
     c.status = 3
     c.file = "leaving zone"
     c.changelog.append("car " + c.stock_number + " ready to leave the LC at time ")
     table_cars_at_lc.pop(c.stock_number)
 
 
+def car_left_lc(c: Car):
+    c.status = 66
+    c.changelog.append("car " + c.stock_number + " left the LC at time XXX")
+    c.file = "has left"
+
+
 car1 = Car()
+car2 = Car()
 print(car1.__dict__)
 car1.set_car_properties("X1", "v", "l", "", 0, [])
+car2.set_car_properties("X2", "V2", "L2", "", 0, [])
 print(car1.__dict__)
 print(table_cars_expected)
 print(check_car(car1.stock_number, table_cars_expected))
 add_car_to_lc(car1)
+add_car_to_lc(car2)
 print(car1.__dict__)
 print(table_cars_at_lc)
 print(table_files)
 assign_car_placement(car1, "F2")
+assign_car_placement(car2, "F2")
 print(car1.__dict__)
 print(table_cars_at_lc)
 print(table_files['F2'].__dict__)
@@ -180,4 +191,31 @@ def display_table_cars_at_lc():
     for elem in table_files:
         print(table_files[elem].__dict__)
 
+
+def lite_display_cars_at_lc():
+    for elem in table_files:
+        if not table_files[elem].list_cars:
+            pass
+        else:
+            for elem2 in table_files[elem].list_cars:
+                print(elem2[0] + " at file " + elem2[3])
+
+
+def lite_display_cars_ready_to_leave():
+    for x in table_cars_all_time:
+        y = table_cars_all_time.get(x)
+        if y['status'] == 3:
+            print(y)
+
+
+def lite_display_cars_left_lc():
+    for x in table_cars_all_time:
+        y = table_cars_all_time.get(x)
+        if y['status'] == 66:
+            print(y)
+
+
 display_table_cars_at_lc()
+lite_display_cars_at_lc()
+print(table_cars_all_time)
+lite_display_cars_ready_to_leave()
